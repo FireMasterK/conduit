@@ -958,6 +958,15 @@ impl KeyValueDatabase {
             );
         }
 
+        // start - piped
+
+        // We delete all pdu room events events which start with our
+        // prefix - video.piped, to save space
+
+        services().rooms.timeline.db.purge_piped_events()?;
+
+        // end - piped
+
         // This data is probably outdated
         db.presenceid_presence.clear()?;
 

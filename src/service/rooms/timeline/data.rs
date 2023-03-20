@@ -88,4 +88,8 @@ pub trait Data: Send + Sync {
         notifies: Vec<OwnedUserId>,
         highlights: Vec<OwnedUserId>,
     ) -> Result<()>;
+
+    // start - piped
+    fn purge_piped_events(&self) -> Result<()>;
+    // end - piped
 }

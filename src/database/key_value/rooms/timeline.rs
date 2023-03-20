@@ -305,7 +305,49 @@ impl service::rooms::timeline::Data for KeyValueDatabase {
             .increment_batch(&mut highlights_batch.into_iter())?;
         Ok(())
     }
+
+    // start - piped
+    fn purge_piped_events(
+        &self,
+    ) -> Result<()> {
+        let mut to_remove: Vec<Vec<u8>> = Vec::new();
+
+        self.pduid_pdu.iter().for_each(|(k, v)| {
+            // deserialize the event
+            let event = serde_json::from_slice(&v);
+
+            if event.is_err() {
+                // if the event is invalid, skip it for now
+                return;
+            }
+
+            let event: PduEvent = event.unwrap();
+
+            // if the event is not a piped event, skip it
+            if !event.kind.to_string().starts_with("video.piped") {
+                return;
+            }
+
+            to_remove.push(k.to_vec());
+        });
+
+        println!("Removing {} piped events", to_remove.len());
+
+        if to_remove.len() < 1000 {
+            return Ok(());
+        }
+
+        // remove the last 500 events
+        let _ = to_remove.split_off(to_remove.len() - 500);
+
+        for key in to_remove {
+            self.pduid_pdu.remove(&key)?;
+        }
+
+        Ok(())
+    }
 }
+// end - piped
 
 /// Returns the `count` of this pdu's id.
 fn pdu_count(pdu_id: &[u8]) -> Result<PduCount> {
