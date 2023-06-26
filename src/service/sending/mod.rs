@@ -608,22 +608,25 @@ impl Service {
                     match event {
                         SendingEventType::Pdu(pdu_id) => {
                             // TODO: check room version and remove event_id if needed
-                            let raw = PduEvent::convert_to_outgoing_federation_event(
-                                services().rooms
-                                    .timeline
-                                    .get_pdu_json_from_id(pdu_id)
-                                    .map_err(|e| (OutgoingKind::Normal(server.clone()), e))?
-                                    .ok_or_else(|| {
-                                        error!("event not found: {server} {pdu_id:?}");
-                                        (
-                                            OutgoingKind::Normal(server.clone()),
-                                            Error::bad_database(
-                                                "[Normal] Event in servernamevent_datas not found in db.",
-                                            ),
-                                        )
-                                    })?,
-                            );
-                            pdu_jsons.push(raw);
+                            let pdu_json = services().rooms
+                                .timeline
+                                .get_pdu_json_from_id(pdu_id)
+                                .map_err(|e| (OutgoingKind::Normal(server.clone()), e))?
+                                .ok_or_else(|| {
+                                    error!("event not found: {server} {pdu_id:?}");
+                                    (
+                                        OutgoingKind::Normal(server.clone()),
+                                        Error::bad_database(
+                                            "[Normal] Event in servernamevent_datas not found in db.",
+                                        ),
+                                    )
+                                });
+                            if pdu_json.is_ok() {
+                                let raw = PduEvent::convert_to_outgoing_federation_event(
+                                    pdu_json.unwrap(),
+                                );
+                                pdu_jsons.push(raw);
+                            }
                         }
                         SendingEventType::Edu(edu) => {
                             if let Ok(raw) = serde_json::from_slice(edu) {
